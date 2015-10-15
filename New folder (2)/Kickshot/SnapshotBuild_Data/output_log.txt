@@ -1,0 +1,53 @@
+Initialize engine version: 5.1.1f1 (2046fc06d4d8)
+GfxDevice: creating device client; threaded=1
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.0]
+    Renderer: AMD Radeon HD 7640G + 7670M Dual Graphics (ID=0x9903)
+    Vendor:   ATI
+    VRAM:     1498 MB
+Begin MonoManager ReloadAssembly
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.dll (this message is harmless)
+Loading C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.dll into Unity Child Domain
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\Assembly-CSharp.dll (this message is harmless)
+Loading C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\Assembly-CSharp.dll into Unity Child Domain
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.UI.dll (this message is harmless)
+Loading C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.UI.dll into Unity Child Domain
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.Networking.dll (this message is harmless)
+Loading C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.Networking.dll into Unity Child Domain
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.Analytics.dll (this message is harmless)
+Loading C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\UnityEngine.Analytics.dll into Unity Child Domain
+- Completed reload, in  0.933 seconds
+desktop: 1366x768 60Hz; virtual: 1366x768 at 0,0
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\System.Core.dll (this message is harmless)
+Platform assembly: C:\Users\Tessa\Documents\Tessa\College\CS 480\Unity\FromJason\New folder (2)\Kickshot\SnapshotBuild_Data\Managed\System.dll (this message is harmless)
+Setting up 1 worker threads for Enlighten.
+  Thread -> id: 27c8 -> priority: 1 
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 11.821229 ms
+
+Unloading 6 unused Assets to reduce memory usage. Loaded Objects now: 392.
+Total: 0.864467 ms (FindLiveObjects: 0.064254 ms CreateObjectMapping: 0.056695 ms MarkObjects: 0.715440 ms  DeleteObjects: 0.026457 ms)
+
+6 3
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+3 4
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+4 1
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+3 2
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+3 6
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
