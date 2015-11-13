@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;  // added for Text object 
 
 public class GameManager : MonoBehaviour {
 	
@@ -51,24 +52,47 @@ public class GameManager : MonoBehaviour {
 	bool singlerolling;
 	bool DiceShown;
 	bool PlayerHasBall;
-	
+	bool playerTurn; // from merge
+
 	int Dice1Val;
 	int Dice2Val;
 	int BallPos; // 0 = center, 11 = top
 	int Passing;
 	int Intercepting;
-	
+
+	// from merge
+	public Text message;
+	bool diceRollComplete = false;
+	stages stage;
+	enum stages{RollOff, CardSelect,CardPlay,DiceRoll,CardReaction,AITurn,etc};
 	// Use this for initialization
 	void Start () {
 		Hand = new string[6];
 		Deck = new string[100];
+		AIHand = new string[6];
+		AIDeck = new string[100];
 		Home = true;
 		PlayerHasBall = true;
 		Passing = 0;
 		Intercepting = 0;
 		Shuffle();
+		StartCoroutine (DisplayMessage ("Tap to Roll Off!", 3000));
+		stage = stages.RollOff;
 	}
-	
+
+	IEnumerator DisplayMessage(string newMessage, int time){
+		message.text = newMessage;
+		//print ("yes");
+		System.DateTime now = System.DateTime.Now;
+		while(System.DateTime.Now < now.AddMilliseconds(time)){
+			//print ("wait");
+			yield return null;}
+		if (message.text == newMessage) {
+			message.text = "";
+		}
+		yield return null;
+	} // end DisplayMessage // from merge
+
 	// Update is called once per frame
 	void Update () {
 		if (Dice1.GetComponent<Rigidbody> ().velocity == Vector3.zero && Dice2.GetComponent<Rigidbody> ().velocity == Vector3.zero && rolling == true) 
@@ -81,7 +105,74 @@ public class GameManager : MonoBehaviour {
 		{
 			HideDice();
 		}
+
+		//my tessa's stuff
+		if (diceRollComplete && stage == stages.RollOff) { // if roll off stage
+			diceRollComplete = false;
+			stage = stages.CardSelect;
+			if (Dice1Val > Dice2Val) {
+				StartCoroutine (DisplayMessage ("You go first", 2000));
+				print("You go first");
+				playerTurn = true;
+				StartCoroutine(CardPrompt());
+			} else {
+				StartCoroutine (DisplayMessage ("Computer goes first!", 2000));
+				print ("Computer goes first!");
+				playerTurn = false;
+				StartCoroutine(AITurn());
+			}
+			
+		}
+		if(playerTurn && stage == stages.CardSelect) { // if player turn and stage card selection
+			// need a delay in the message changes
+			stage = stages.etc;
+			
+		}
+	}
+
+	IEnumerator AITurn(){
 		
+		StartCoroutine(DisplayMessage("AI Turn",1000));
+		print ("AI Turn");
+		System.DateTime now = System.DateTime.Now; // change to float 
+		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+		StartCoroutine(cardFunction ("AI"));
+		
+		//StartCoroutine(EndTurn());
+	} // added in merge 
+
+	IEnumerator cardFunction(string player){
+		StartCoroutine(DisplayMessage(player + " plays card",1000));
+		print (player + " plays card");
+		StartCoroutine(EndTurn ());
+		yield return null;
+	}
+
+	IEnumerator EndTurn(){
+		print ("End Turn");
+		System.DateTime now = System.DateTime.Now;
+		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+		playerTurn = !playerTurn;
+		print ("Player turn: " + playerTurn);
+		if (playerTurn) {
+			StartCoroutine(DisplayMessage("Your turn!",4000));
+			print("Your turn!");
+			ShowCards();
+		}else if (!playerTurn) {
+			;
+			StartCoroutine(AITurn());
+		}
+	}
+
+	IEnumerator CardPrompt(){
+		ShowCards ();
+		yield return null;
+		System.DateTime d = System.DateTime.Now;
+		while(System.DateTime.Now < d.AddMilliseconds(2000)){
+			yield return null;
+		}
+		StartCoroutine (DisplayMessage ("Pick a Card!", 3000));
+		yield return null;
 	}
 
 	public void Shuffle()
@@ -772,7 +863,9 @@ public class GameManager : MonoBehaviour {
 			DisplayDice2.transform.eulerAngles = new Vector3(90,0,0);
 		DisplayDice2.transform.position = DicePosistion;
 		
-		Debug.Log ("" + Dice1Val + " " + Dice2Val);
+		//Debug.Log ("" + Dice1Val + " " + Dice2Val);
+
+		diceRollComplete = true;
 	}
 
 
