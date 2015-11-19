@@ -148,22 +148,36 @@ public class GameManager : MonoBehaviour {
 		print ("AI Turn");
 		System.DateTime now = System.DateTime.Now; // change to float 
 		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
-		StartCoroutine(cardFunction ("AI"));
+		if(PlayerHasBall ){//&& AIHandContains("Intercept")){
+			StartCoroutine(DisplayMessage("AI Plays Intercept",1000));
+			PublicIntercept();
+		}
+		else if (!PlayerHasBall ){//&& AIHandContains("Pass")) {
+			StartCoroutine(DisplayMessage("AI Plays Pass",1000));
+			PublicPass ();
+		}else{EndTurn();};
 		
 		//StartCoroutine(EndTurn());
 	} // added in merge 
 	
+	bool AIHandContains(string cardNum){
+		foreach (string card in AIHand) {
+			if(card == cardNum){
+				return true;
+			}
+		}
+		return false;
+	}
+
 	IEnumerator cardFunction(string player){
 		StartCoroutine(DisplayMessage(player + " plays card",1000));
 		print (player + " plays card");
-		StartCoroutine(EndTurn ());
+		EndTurn ();
 		yield return null;
 	}
 	
-	IEnumerator EndTurn(){
+	void EndTurn(){
 		print ("End Turn");
-		System.DateTime now = System.DateTime.Now;
-		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 		playerTurn = !playerTurn;
 		print ("Player turn: " + playerTurn);
 		if (playerTurn) {
@@ -288,7 +302,7 @@ public class GameManager : MonoBehaviour {
 		{
 			PublicIntercept();
 		}
-		StartCoroutine(EndTurn ());
+		//StartCoroutine(EndTurn ());
 		DiscardCard ();
 	}
 	
@@ -645,7 +659,7 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 		Passing = 0;
-		//StartCoroutine(EndTurn ());
+		EndTurn();
 	}
 	
 	public void PublicIntercept()
@@ -676,6 +690,7 @@ public class GameManager : MonoBehaviour {
 			FlipToken();
 		}
 		Intercepting = 0;
+		EndTurn();
 	}
 	
 	void MoveTokenToPos(int Pos)
@@ -698,7 +713,7 @@ public class GameManager : MonoBehaviour {
 			NewPosistion = new Vector3 (0.0f, 0.1f, 0.0f);
 		}
 		StartCoroutine (SmoothMovement (NewPosistion, Token));
-		//StartCoroutine(EndTurn ());
+		
 	}
 	
 	public void ShowCards()
