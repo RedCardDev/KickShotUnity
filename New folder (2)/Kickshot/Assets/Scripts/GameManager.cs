@@ -13,9 +13,14 @@ public class GameManager : MonoBehaviour {
 	public GameObject Dice2;
 	public GameObject Token;
 	
+	public GameObject DisplayCard;
+	public GameObject CardButtons;
+	
+	public Button PlayCardButton;
+	
 	string[] Hand;
 	string[] Deck;
-
+	
 	string[] AIHand;
 	string[] AIDeck;
 	
@@ -27,10 +32,10 @@ public class GameManager : MonoBehaviour {
 	public float DisplayTime;
 	
 	public bool Home;
-
+	
 	public int PlayerScore;
 	public int AIScore;
-
+	
 	public int PassNum;
 	public int InterceptNum;
 	public int GoalShotLeftNum;
@@ -38,14 +43,16 @@ public class GameManager : MonoBehaviour {
 	public int BlockLeftNum;
 	public int BlockRightNum;
 
-
+	public KeyCode ActivateKey = KeyCode.Mouse0;
+	
+	
 	int CurrentPassNum;
 	int CurrentInterceptNum;
 	int CurrentGoalShotLeftNum;
 	int CurrentGoalShotRightNum;
 	int CurrentBlockLeftNum;
 	int CurrentBlockRightNum;
-
+	
 	float HideDiceTime;
 	
 	bool rolling;
@@ -53,13 +60,17 @@ public class GameManager : MonoBehaviour {
 	bool DiceShown;
 	bool PlayerHasBall;
 	bool playerTurn; // from merge
-
+	
 	int Dice1Val;
 	int Dice2Val;
 	int BallPos; // 0 = center, 11 = top
 	int Passing;
 	int Intercepting;
+	
+	int CardChoice;
 
+	int DeckPos;
+	
 	// from merge
 	public Text message;
 	bool diceRollComplete = false;
@@ -75,11 +86,12 @@ public class GameManager : MonoBehaviour {
 		PlayerHasBall = true;
 		Passing = 0;
 		Intercepting = 0;
+		DeckPos = 0;
 		Shuffle();
 		StartCoroutine (DisplayMessage ("Tap to Roll Off!", 3000));
 		stage = stages.RollOff;
 	}
-
+	
 	IEnumerator DisplayMessage(string newMessage, int time){
 		message.text = newMessage;
 		//print ("yes");
@@ -92,7 +104,7 @@ public class GameManager : MonoBehaviour {
 		}
 		yield return null;
 	} // end DisplayMessage // from merge
-
+	
 	// Update is called once per frame
 	void Update () {
 		if (Dice1.GetComponent<Rigidbody> ().velocity == Vector3.zero && Dice2.GetComponent<Rigidbody> ().velocity == Vector3.zero && rolling == true) 
@@ -105,7 +117,7 @@ public class GameManager : MonoBehaviour {
 		{
 			HideDice();
 		}
-
+		
 		//my tessa's stuff
 		if (diceRollComplete && stage == stages.RollOff) { // if roll off stage
 			diceRollComplete = false;
@@ -129,7 +141,7 @@ public class GameManager : MonoBehaviour {
 			
 		}
 	}
-
+	
 	IEnumerator AITurn(){
 		
 		StartCoroutine(DisplayMessage("AI Turn",1000));
@@ -140,14 +152,14 @@ public class GameManager : MonoBehaviour {
 		
 		//StartCoroutine(EndTurn());
 	} // added in merge 
-
+	
 	IEnumerator cardFunction(string player){
 		StartCoroutine(DisplayMessage(player + " plays card",1000));
 		print (player + " plays card");
 		StartCoroutine(EndTurn ());
 		yield return null;
 	}
-
+	
 	IEnumerator EndTurn(){
 		print ("End Turn");
 		System.DateTime now = System.DateTime.Now;
@@ -157,13 +169,13 @@ public class GameManager : MonoBehaviour {
 		if (playerTurn) {
 			StartCoroutine(DisplayMessage("Your turn!",4000));
 			print("Your turn!");
-			ShowCards();
+			StartCoroutine(CardPrompt());
 		}else if (!playerTurn) {
 			;
 			StartCoroutine(AITurn());
 		}
 	}
-
+	
 	IEnumerator CardPrompt(){
 		ShowCards ();
 		yield return null;
@@ -172,22 +184,160 @@ public class GameManager : MonoBehaviour {
 			yield return null;
 		}
 		StartCoroutine (DisplayMessage ("Pick a Card!", 3000));
+		StartCoroutine (PickCard());
 		yield return null;
 	}
+	
+	
+	IEnumerator PickCard()
+	{
+		int waiting = 0;
+		int card = 0;
+		while (waiting != 1) 
+		{
+			if (Input.GetKey(ActivateKey))
+			{
+				Ray ray = Camera.main.ScreenPointToRay (Input.mousePosition);
+				RaycastHit hit;
+				if (Physics.Raycast (ray, out hit)) 
+				{
+					//Debug.Log (hit.collider.gameObject.name);
+					if(hit.collider.gameObject.name == "Card1")
+					{
+						card = 1;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card2")
+					{
+						card = 2;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card3")
+					{
+						card = 3;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card4")
+					{
+						card = 4;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card5")
+					{
+						card = 5;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card6")
+					{
+						card = 6;
+						waiting = 1;
+					}
+				}
+			}
+			yield return null;
+		}
+		
+		CardChoice = card;
+		
+		DisplayCard.GetComponent<Renderer> ().material.mainTexture = Cards [card].GetComponent<Renderer> ().material.mainTexture;
+		DisplayCard.SetActive(true);
+		CardButtons.SetActive(true);
+		
+		CheckValidCard ();
+	}
+	
+	void CheckValidCard()
+	{
+		if (Hand [CardChoice] == "Pass" || Hand [CardChoice] == "GoalShotLeft" || Hand [CardChoice] == "GoalShotRight") 
+		{
+			if (Home == true)
+			{
+				PlayCardButton.interactable = true;
+			}
+			else
+			{
+				PlayCardButton.interactable = false;
+			}
+		}
+		
+		if (Hand [CardChoice] == "Intercept" || Hand [CardChoice] == "GoalBlockLeft" || Hand [CardChoice] == "GoalBlockRight")
+		{
+			if (Home == false)
+			{
+				PlayCardButton.interactable = true;
+			}
+			else
+			{
+				PlayCardButton.interactable = false;
+			}
+		}
+	}
+	
+	public void PlayCard()
+	{
+		DisplayCard.SetActive(false);
+		CardButtons.SetActive(false);
+		HideCards();
+		
+		if (Hand [CardChoice] == "Pass") 
+		{
+			PublicPass();
+		}
+		
+		if (Hand [CardChoice] == "Intercept") 
+		{
+			PublicIntercept();
+		}
+		StartCoroutine(EndTurn ());
+		DiscardCard ();
+	}
+	
+	public void CancelPlayingCard ()
+	{
+		DisplayCard.SetActive(false);
+		CardButtons.SetActive(false);
+		StartCoroutine (PickCard());
+	}
 
+	public void DiscardCard()
+	{
+		Hand[CardChoice] = Deck[DeckPos];
+		DeckPos++;
+
+		if (Hand [CardChoice] == "Pass") {
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
+		} 
+		else if (Hand [CardChoice] == "GoalShotLeft") {
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [9];
+		} 
+		else if (Hand [CardChoice] == "GoalShotRight") {	
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [10];
+		}
+		else if (Hand [CardChoice] == "Intercept") {	
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [12];
+		}
+		else if (Hand [CardChoice] == "BlockLeft") {	
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [5];
+		}
+		else
+		{
+			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [6];
+		}
+	}
+	
 	public void Shuffle()
 	{
 		int i;
 		float Selected;
-
+		
 		CurrentPassNum = PassNum;
 		CurrentInterceptNum = InterceptNum;
 		CurrentGoalShotLeftNum = GoalShotLeftNum;
 		CurrentGoalShotRightNum = GoalShotRightNum;
 		CurrentBlockLeftNum = BlockLeftNum;
 		CurrentBlockRightNum = BlockRightNum;
-
-
+		
+		
 		for (i = 0; i < 4; i++) 
 		{
 			Selected = Random.Range(0, CurrentPassNum + CurrentGoalShotLeftNum + CurrentGoalShotRightNum);
@@ -210,11 +360,11 @@ public class GameManager : MonoBehaviour {
 				Cards[i].GetComponent<Renderer>().material.mainTexture  = CardTextures[10];
 			}
 		}
-
+		
 		for (i = 0; i < 2; i++) 
 		{
 			Selected = Random.Range(0, CurrentInterceptNum + CurrentBlockLeftNum + CurrentBlockRightNum);
-
+			
 			if (Selected < CurrentInterceptNum)
 			{
 				Hand[i+4] = "Intercept";
@@ -234,9 +384,9 @@ public class GameManager : MonoBehaviour {
 				Cards[i+4].GetComponent<Renderer>().material.mainTexture  = CardTextures[6];
 			}
 		}
-
+		
 		i = 0;
-
+		
 		while (CurrentPassNum + CurrentInterceptNum + CurrentGoalShotRightNum + CurrentGoalShotLeftNum + CurrentBlockRightNum + CurrentBlockLeftNum > 0) 
 		{
 			Selected = Random.Range(0, CurrentPassNum + CurrentInterceptNum + CurrentGoalShotRightNum + CurrentGoalShotLeftNum + CurrentBlockRightNum + CurrentBlockLeftNum);
@@ -258,14 +408,14 @@ public class GameManager : MonoBehaviour {
 				CurrentGoalShotRightNum--;
 				i++;
 			}
-
+			
 			else if (Selected < CurrentPassNum + CurrentGoalShotLeftNum + CurrentGoalShotRightNum + CurrentInterceptNum)
 			{
 				Deck[i] = "Intercept";
 				CurrentInterceptNum--;
 				i++;
 			}
-
+			
 			else if (Selected < CurrentPassNum + CurrentGoalShotLeftNum + CurrentGoalShotRightNum + CurrentInterceptNum + CurrentBlockRightNum)
 			{
 				Deck[i] = "BlockRight";
@@ -280,7 +430,7 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 	}
-
+	
 	public void AIShuffle()
 	{
 		int i;
@@ -384,12 +534,12 @@ public class GameManager : MonoBehaviour {
 	public void PublicPass (){
 		StartCoroutine (Pass());
 	}
-
+	
 	protected IEnumerator Pass()
 	{
 		int distance = 1;
 		int NewPos = 0;
-
+		
 		if (PlayerHasBall == true)
 		{
 			RollDiceFunc ();
@@ -399,7 +549,7 @@ public class GameManager : MonoBehaviour {
 			AIRollDiceFunc ();
 		}
 		Passing = 1;
-
+		
 		while (Passing == 1) 
 		{
 			yield return null;
@@ -432,30 +582,30 @@ public class GameManager : MonoBehaviour {
 		}
 		BallPos = NewPos;
 		MoveTokenToPos (NewPos);
-
+		
 		Passing = 3;
-
+		
 		while (Passing == 3) 
 		{
 			yield return null;
 		}
-
+		
 		if (Dice1Val == 1 || Dice2Val == 1) 
 		{
 			FlipToken ();
 		}
-
+		
 		if (NewPos <= -11 || NewPos >= 11) {
 			if (Dice1Val != 1 && Dice2Val != 1) 
 			{
 				OpposedRollDiceFunc();
 				Passing = 5;
-
+				
 				while (Passing == 5) 
 				{
 					yield return null;
 				}
-
+				
 				while (Dice1Val == Dice2Val)
 				{
 					OpposedRollDiceFunc();
@@ -466,7 +616,7 @@ public class GameManager : MonoBehaviour {
 						yield return null;
 					}
 				}
-
+				
 				if (Dice1Val > Dice2Val)
 				{
 					if (PlayerHasBall == true)
@@ -491,28 +641,28 @@ public class GameManager : MonoBehaviour {
 						FlipToken();
 					}
 				}
-
+				
 			}
 		}
 		Passing = 0;
-		
+		//StartCoroutine(EndTurn ());
 	}
-
+	
 	public void PublicIntercept()
 	{
 		StartCoroutine (Intercept());
 	}
-
+	
 	protected IEnumerator Intercept()
 	{
 		
 		if (PlayerHasBall == true)
 		{
-			RollDiceFunc ();
+			AIRollDiceFunc ();
 		}
 		else
 		{
-			AIRollDiceFunc ();
+			RollDiceFunc ();
 		}
 		Intercepting = 1;
 		
@@ -520,14 +670,14 @@ public class GameManager : MonoBehaviour {
 		{
 			yield return null;
 		}
-
+		
 		if (Dice1Val == Dice2Val && Dice1Val != 1) 
 		{
 			FlipToken();
 		}
 		Intercepting = 0;
 	}
-
+	
 	void MoveTokenToPos(int Pos)
 	{
 		Vector3 NewPosistion;
@@ -548,6 +698,7 @@ public class GameManager : MonoBehaviour {
 			NewPosistion = new Vector3 (0.0f, 0.1f, 0.0f);
 		}
 		StartCoroutine (SmoothMovement (NewPosistion, Token));
+		//StartCoroutine(EndTurn ());
 	}
 	
 	public void ShowCards()
@@ -651,12 +802,12 @@ public class GameManager : MonoBehaviour {
 		Dice1.SetActive(false);
 		Dice2.SetActive(false);
 		DiceShown = false;
-
+		
 		if (Passing == 1 || Passing == 5) 
 		{
 			Passing++;
 		}
-
+		
 		if (Intercepting == 1) 
 		{
 			Intercepting++;
@@ -691,7 +842,7 @@ public class GameManager : MonoBehaviour {
 			rolling = true;
 		}
 	}
-
+	
 	public void OpposedRollDiceFunc()
 	{
 		if (rolling == true) {
@@ -720,7 +871,7 @@ public class GameManager : MonoBehaviour {
 			rolling = true;
 		}
 	}
-
+	
 	public void AIRollDiceFunc()
 	{
 		if (rolling == true) {
@@ -750,7 +901,7 @@ public class GameManager : MonoBehaviour {
 		}
 	}
 	
-
+	
 	void ResolveDiceRoll()
 	{
 		Vector3 DicePosistion;
@@ -864,11 +1015,11 @@ public class GameManager : MonoBehaviour {
 		DisplayDice2.transform.position = DicePosistion;
 		
 		//Debug.Log ("" + Dice1Val + " " + Dice2Val);
-
+		
 		diceRollComplete = true;
 	}
-
-
+	
+	
 	protected IEnumerator SmoothMovement (Vector3 end, GameObject Obj)
 	{
 		Rigidbody rb;
