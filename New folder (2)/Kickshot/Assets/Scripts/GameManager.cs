@@ -42,7 +42,7 @@ public class GameManager : MonoBehaviour {
 	public int GoalShotRightNum;
 	public int BlockLeftNum;
 	public int BlockRightNum;
-
+	
 	public KeyCode ActivateKey = KeyCode.Mouse0;
 	
 	
@@ -67,27 +67,32 @@ public class GameManager : MonoBehaviour {
 	int Passing;
 	int Intercepting;
 	int GoalShotting;
-
+	int GoalBlocking;
+	string GoalShotSide;
+	
 	int CardChoice;
-
+	
 	int DeckPos;
+	public Text ScoreText;
 	
 	// from merge
 	public Text message;
+	
 	bool diceRollComplete = false;
 	stages stage;
 	enum stages{RollOff, CardSelect,CardPlay,DiceRoll,CardReaction,AITurn,etc};
 	// Use this for initialization
 	void Start () {
 		Hand = new string[6];
-		Deck = new string[100];
+		Deck = new string[1000];
 		AIHand = new string[6];
-		AIDeck = new string[100];
+		AIDeck = new string[1000];
 		Home = true;
 		PlayerHasBall = true;
 		Passing = 0;
 		Intercepting = 0;
 		GoalShotting = 0;
+		GoalBlocking = 0;
 		DeckPos = 0;
 		Shuffle();
 		StartCoroutine (DisplayMessage ("Tap to Roll Off!", 3000));
@@ -155,8 +160,24 @@ public class GameManager : MonoBehaviour {
 			PublicIntercept();
 		}
 		else if (!PlayerHasBall ){//&& AIHandContains("Pass")) {
-			StartCoroutine(DisplayMessage("AI Plays Pass",1000));
-			PublicPass ();
+			if (BallPos > -4)
+			{
+				StartCoroutine(DisplayMessage("AI Plays Pass",1000));
+				PublicPass ();
+			}
+			else
+			{
+				if (Random.Range(0,10) > 5)
+				{
+					StartCoroutine(DisplayMessage("AI Plays Goal Shot Right",1000));
+					StartCoroutine(GoalShot ("Right"));
+				}
+				else
+				{
+					StartCoroutine(DisplayMessage("AI Plays Goal Shot Left",1000));
+					StartCoroutine(GoalShot ("Left"));
+				}
+			}
 		}else{EndTurn();};
 		
 		//StartCoroutine(EndTurn());
@@ -178,7 +199,7 @@ public class GameManager : MonoBehaviour {
 		}
 		return false;
 	}
-
+	
 	void EndTurn(){
 		print ("End Turn");
 		playerTurn = !playerTurn;
@@ -254,9 +275,9 @@ public class GameManager : MonoBehaviour {
 			yield return null;
 		}
 		
-		CardChoice = card;
+		CardChoice = card - 1;
 		
-		DisplayCard.GetComponent<Renderer> ().material.mainTexture = Cards [card].GetComponent<Renderer> ().material.mainTexture;
+		DisplayCard.GetComponent<Renderer> ().material.mainTexture = Cards [card - 1].GetComponent<Renderer> ().material.mainTexture;
 		DisplayCard.SetActive(true);
 		CardButtons.SetActive(true);
 		
@@ -277,9 +298,33 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 		
-		if (Hand [CardChoice] == "Intercept" || Hand [CardChoice] == "GoalBlockLeft" || Hand [CardChoice] == "GoalBlockRight")
+		if (Hand [CardChoice] == "Intercept" )
 		{
-			if (Home == false)
+			if (Home == false && GoalShotting != 6)
+			{
+				PlayCardButton.interactable = true;
+			}
+			else
+			{
+				PlayCardButton.interactable = false;
+			}
+		}
+
+		if (Hand [CardChoice] == "BlockLeft" )
+		{
+			if (Home == false && GoalShotting == 6 && GoalShotSide == "Left")
+			{
+				PlayCardButton.interactable = true;
+			}
+			else
+			{
+				PlayCardButton.interactable = false;
+			}
+		}
+
+		if (Hand [CardChoice] == "BlockRight") 
+		{
+			if (Home == false && GoalShotting == 6 && GoalShotSide == "Right")
 			{
 				PlayCardButton.interactable = true;
 			}
@@ -289,6 +334,24 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 	}
+
+	public void SkipTurn()
+	{
+		if (GoalShotting == 6) 
+		{
+			StartCoroutine (DisplayMessage ("AI Scores", 3000));
+			AIScore ++;
+			UpdateScore ();
+			MoveTokenToCenter ();
+			GoalShotting = 0;
+		}
+		DisplayCard.SetActive(false);
+		CardButtons.SetActive(false);
+		HideCards ();
+		EndTurn ();
+	}
+
+
 	
 	public void PlayCard()
 	{
@@ -305,13 +368,21 @@ public class GameManager : MonoBehaviour {
 		{
 			PublicIntercept();
 		}
-
+		
 		if (Hand [CardChoice] == "GoalShotRight") {
-			GoalShot ("Right");
+			StartCoroutine(GoalShot ("Right"));
+		}
+		
+		if (Hand [CardChoice] == "GoalShotLeft") {
+			StartCoroutine(GoalShot ("Left"));
 		}
 
-		if (Hand [CardChoice] == "GoalShotLeft") {
-			GoalShot ("Left");
+		if (Hand [CardChoice] == "BlockRight") {
+			StartCoroutine(GoalBlock());
+		}
+
+		if (Hand [CardChoice] == "BlockLeft") {
+			StartCoroutine(GoalBlock());
 		}
 		//StartCoroutine(EndTurn ());
 		DiscardCard ();
@@ -323,12 +394,12 @@ public class GameManager : MonoBehaviour {
 		CardButtons.SetActive(false);
 		StartCoroutine (PickCard());
 	}
-
+	
 	public void DiscardCard()
 	{
 		Hand[CardChoice] = Deck[DeckPos];
 		DeckPos++;
-
+		
 		if (Hand [CardChoice] == "Pass") {
 			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
 		} 
@@ -647,6 +718,8 @@ public class GameManager : MonoBehaviour {
 					if (PlayerHasBall == true)
 					{
 						PlayerScore ++;
+						UpdateScore();
+						StartCoroutine (DisplayMessage("You Score!", 3000));
 						MoveTokenToCenter();
 					}
 					else
@@ -659,6 +732,8 @@ public class GameManager : MonoBehaviour {
 					if (PlayerHasBall == false)
 					{
 						AIScore ++;
+						UpdateScore();
+						StartCoroutine (DisplayMessage("AI Scores", 3000));
 						MoveTokenToCenter();
 					}
 					else
@@ -781,6 +856,7 @@ public class GameManager : MonoBehaviour {
 	
 	public void MoveTokenToCenter()
 	{
+		BallPos = 0;
 		Vector3 CenterPosistion = new Vector3 (0.0f, 0.1f, 0.0f);
 		StartCoroutine (SmoothMovement (CenterPosistion,Token));
 	}
@@ -838,10 +914,15 @@ public class GameManager : MonoBehaviour {
 		{
 			Intercepting++;
 		}
-
+		
 		if (GoalShotting == 1 || GoalShotting == 5) 
 		{
 			GoalShotting++;
+		}
+
+		if (GoalBlocking == 1) 
+		{
+			GoalBlocking++;
 		}
 	}
 	
@@ -1070,12 +1151,17 @@ public class GameManager : MonoBehaviour {
 			yield return null;
 		}
 		
-		if (Dice1Val > Dice2Val)
-			distance = Dice1Val;
-		else if (Dice1Val < Dice2Val)
-			distance = Dice2Val;
+		//if (Dice1Val != Dice2Val)
+		//	distance = Dice1Val + ;
+		//else if (Dice1Val < Dice2Val)
+		//	distance = Dice2Val;
+		//else if (Dice1Val == Dice2Val)
+		//	distance = Dice1Val + 1; // not sure about this if 
+
+		if (Dice1Val != Dice2Val)
+			distance = Dice1Val + Dice2Val;
 		else if (Dice1Val == Dice2Val)
-			distance = Dice1Val + 1; // not sure about this if 
+			distance = Dice1Val + Dice2Val + 1;
 		
 		if (PlayerHasBall == true) 
 		{
@@ -1111,34 +1197,107 @@ public class GameManager : MonoBehaviour {
 		}else{
 			// check if opposed has a goalblock card 
 			if (PlayerHasBall == true 
-			    && ((side == "right" && AIHandContains("GoalBlockRight")) 
-			    ||  (side == "left" && AIHandContains("GoalBlockLeft")))){
+			    && ((side == "right" && AIHandContains("BlockRight")) 
+			    ||  (side == "left" && AIHandContains("BlockLeft")))){
 				// chance AI plays card
 				if (Random.Range(0,10) > 2) {
-					
-				}
-			}else if (PlayerHasBall == false 
-		          && ((side == "right" && PlayerHandContains("GoalBlockRight")) 
-		    	|| (side == "right" && PlayerHandContains("GoalBlockLeft")))){
-			// does player want to play a goalblock?
-			}else{
-			// if not, goal 
-				if (PlayerHasBall == true)
-				{
-					PlayerScore ++;
-					MoveTokenToCenter();
-				}
-				else if (PlayerHasBall == false)
-				{
-					AIScore ++;
-					MoveTokenToCenter();
+
 				}
 			}
+//			else if (PlayerHasBall == false 
+//			          && ((side == "right" && PlayerHandContains("GoalBlockRight")) 
+//			    || (side == "left" && PlayerHandContains("GoalBlockLeft")))){
+				// does player want to play a goalblock?
+//			}
+			else{
+				// if not, goal 
+				if (PlayerHasBall == true)
+				{
+					StartCoroutine (DisplayMessage("You Score!", 3000));
+					PlayerScore ++;
+					UpdateScore();
+					MoveTokenToCenter();
+					GoalShotting = 0;
+				}
+				else
+				{
+					GoalShotting = 6;
+					GoalShotSide = side;
+				}
+//				else if (PlayerHasBall == false)
+//				{
+//					StartCoroutine (DisplayMessage("AI Scores", 3000));
+//					AIScore ++;
+//					UpdateScore();
+//					MoveTokenToCenter();
+//				}
+			}
 		}
-		GoalShotting = 0;
+		//GoalShotting = 0;
 		EndTurn();
 	}
 
+	protected IEnumerator GoalBlock()
+	{
+		GoalShotting = 0;
+		int distance = 1;
+		int NewPos = 0;
+
+		if (PlayerHasBall == true)
+		{
+			AIRollDiceFunc ();
+		}
+		else
+		{
+			RollDiceFunc ();
+		}
+		GoalBlocking = 1;
+		
+		while (GoalBlocking == 1) 
+		{
+			yield return null;
+		}
+		
+		if (Dice1Val != Dice2Val)
+			distance = Dice1Val + Dice2Val;
+		else if (Dice1Val == Dice2Val)
+			distance = Dice1Val + Dice2Val + 1;
+		
+		if (PlayerHasBall == true) 
+		{
+			NewPos = BallPos - distance;
+		}
+		else
+		{
+			NewPos = BallPos + distance;
+		}
+		
+		if (NewPos >= 11) 
+		{
+			NewPos = 11;
+		}
+		
+		if (NewPos <= -11) 
+		{
+			NewPos = -11;
+		}
+		BallPos = NewPos;
+		MoveTokenToPos (NewPos);
+		
+		GoalBlocking = 3;
+		
+		while (GoalBlocking == 3) 
+		{
+			yield return null;
+		}
+		
+		if (Dice1Val != 1 || Dice2Val != 1) 
+		{
+			FlipToken ();
+		}
+		EndTurn();
+	}
+	
 	protected IEnumerator SmoothMovement (Vector3 end, GameObject Obj)
 	{
 		Rigidbody rb;
@@ -1160,6 +1319,10 @@ public class GameManager : MonoBehaviour {
 		{
 			GoalShotting++;
 		}
+		if (GoalBlocking == 3) 
+		{
+			GoalBlocking++;
+		}
 	}
 	
 	protected IEnumerator SmoothRotation (Quaternion rotation)
@@ -1171,5 +1334,10 @@ public class GameManager : MonoBehaviour {
 		}
 		Vector3 FlipPosistion = new Vector3 (Token.transform.position.x, 0.1f, Token.transform.position.z);
 		StartCoroutine (SmoothMovement (FlipPosistion, Token));
+	}
+	
+	void UpdateScore()
+	{
+		ScoreText.text = "Player: " + PlayerScore + "\nAI: " + AIScore;
 	}
 }
