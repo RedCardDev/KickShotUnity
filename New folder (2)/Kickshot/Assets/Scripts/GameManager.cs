@@ -72,12 +72,23 @@ public class GameManager : MonoBehaviour {
 	int GoalShotting;
 	int GoalBlocking;
 
+	int PlayerHandSize;
+	int AIHandSize;
+
+	int FreeKickCardsLeft;
+
 	string GoalShotSide;
 	
 	int CardChoice;
 	
 	int DeckPos;
 	int AIDeckPos;
+	int DeckSize;
+	int RoundEnding;
+	int Round;
+
+	int Skipped; // Used to check for the end of game
+
 	public Text ScoreText;
 	public Text CardText;
 	
@@ -89,9 +100,9 @@ public class GameManager : MonoBehaviour {
 	enum stages{RollOff, CardSelect,CardPlay,DiceRoll,CardReaction,AITurn,etc};
 	// Use this for initialization
 	void Start () {
-		Hand = new string[6];
+		Hand = new string[10];
 		Deck = new string[1000];
-		AIHand = new string[6];
+		AIHand = new string[10];
 		AIDeck = new string[1000];
 		Home = true;
 		PlayerHasBall = true;
@@ -101,6 +112,14 @@ public class GameManager : MonoBehaviour {
 		GoalShotting = 0;
 		GoalBlocking = 0;
 		DeckPos = 0;
+		PlayerHandSize = 6;
+		AIHandSize = 6;
+		FreeKickCardsLeft = 4;
+		DeckSize = PassNum + InterceptNum + GoalShotLeftNum + GoalShotRightNum + BlockLeftNum + BlockRightNum - 6;
+		Skipped = 0;
+		Round = 0;
+
+
 		Shuffle();
 		AIShuffle();
 		CardText.text = "";
@@ -134,6 +153,12 @@ public class GameManager : MonoBehaviour {
 		if (newMessage == "Intercept") {
 			CardText.text = "AI plays intercept";
 			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [11];
+			DisplayCard.SetActive (true);
+		}
+
+		if (newMessage == "FreeKick") {
+			CardText.text = "AI plays direct free kick";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [2];
 			DisplayCard.SetActive (true);
 		}
 
@@ -195,6 +220,10 @@ public class GameManager : MonoBehaviour {
 		{
 			StartCoroutine(GoalBlock());
 		}
+		if (newMessage == "FreeKick") 
+		{
+			StartCoroutine(FreeKick());
+		}
 		yield return null;
 	} 
 	
@@ -237,10 +266,10 @@ public class GameManager : MonoBehaviour {
 	}
 	
 	IEnumerator AITurn(){
-		
+
 		StartCoroutine(DisplayMessage("AI Turn",1000));
 		print ("AI Turn");
-		Debug.Log ("AI hand: " + AIHand[0] + " | " + AIHand[1] + " | " + AIHand[2] + " | " + AIHand[3] + " | " + AIHand[4] + " | " + AIHand[5] );
+		Debug.Log ("AI hand: " + AIHand[0] + " | " + AIHand[1] + " | " + AIHand[2] + " | " + AIHand[3] + " | " + AIHand[4] + " | " + AIHand[5] + " | " + AIHand[6]+ " | " + AIHand[7]+ " | " + AIHand[8]+ " | " + AIHand[9]);
 		System.DateTime now = System.DateTime.Now; // change to float 
 		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 		if(PlayerHasBall )
@@ -253,15 +282,23 @@ public class GameManager : MonoBehaviour {
 					StartCoroutine(DisplayCardMessage("BlockRight",3000));
 					AIDiscard("BlockRight");
 				}
-				else
+				else if (AIDeckPos < DeckSize)
 				{
 					StartCoroutine (DisplayMessage ("AI Discards", 1000));
 					now = System.DateTime.Now; // change to float 
 					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 
 					Debug.Log ("Dicard");
-					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
-					AIDeckPos++;
+
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[Random.Range (0,5)] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[Random.Range (0,5)] = "";
+					}
 					if (AIHandContains("BlockRight"))
 					{
 						StartCoroutine(DisplayCardMessage("BlockRight",3000));
@@ -270,12 +307,40 @@ public class GameManager : MonoBehaviour {
 					else
 					{
 						StartCoroutine (DisplayMessage ("Player Scores", 3000));
-						AIScore ++;
+
+						if (FreeKickCardsLeft > 0)
+						{
+							Hand[PlayerHandSize] = "FreeKick";
+							Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture = CardTextures[2];
+							PlayerHandSize++;
+							Debug.Log("Player earned a card");
+							FreeKickCardsLeft --;
+						}
+						PlayerScore ++;
 						UpdateScore ();
 						MoveTokenToCenter ();
 						GoalShotting = 0;
 						EndTurn ();
 					}
+				}
+				else
+				{
+					Skipped++;
+					StartCoroutine (DisplayMessage ("Player Scores", 3000));
+					
+					if (FreeKickCardsLeft > 0)
+					{
+						Hand[PlayerHandSize] = "FreeKick";
+						Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture = CardTextures[2];
+						PlayerHandSize++;
+						Debug.Log("Player earned a card");
+						FreeKickCardsLeft --;
+					}
+					PlayerScore ++;
+					UpdateScore ();
+					MoveTokenToCenter ();
+					GoalShotting = 0;
+					EndTurn ();
 				}
 			}
 			else if (GoalShotting == 6 && GoalShotSide == "Left")
@@ -285,15 +350,22 @@ public class GameManager : MonoBehaviour {
 					StartCoroutine(DisplayCardMessage("BlockLeft",3000));
 					AIDiscard("BlockLeft");
 				}
-				else
+				else if (AIDeckPos < DeckSize)
 				{
 					Debug.Log ("Dicard");
 					StartCoroutine (DisplayMessage ("AI Discards", 1000));
 					now = System.DateTime.Now; // change to float 
 					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 
-					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
-					AIDeckPos++;
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[Random.Range (0,5)] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[Random.Range (0,5)] = "";
+					}
 					if (AIHandContains("BlockLeft"))
 					{
 						StartCoroutine(DisplayCardMessage("BlockLeft",3000));
@@ -302,30 +374,68 @@ public class GameManager : MonoBehaviour {
 					else
 					{
 						StartCoroutine (DisplayMessage ("Player Scores", 3000));
-						AIScore ++;
+
+						if (FreeKickCardsLeft > 0)
+						{
+							Hand[PlayerHandSize] = "FreeKick";
+							Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture = CardTextures[2];
+							Debug.Log("Player earned a card");
+							PlayerHandSize++;
+						}
+						PlayerScore ++;
 						UpdateScore ();
 						MoveTokenToCenter ();
 						GoalShotting = 0;
 						EndTurn ();
 					}
 				}
+				else
+				{
+					Skipped++;
+					StartCoroutine (DisplayMessage ("Player Scores", 3000));
+					
+					if (FreeKickCardsLeft > 0)
+					{
+						Hand[PlayerHandSize] = "FreeKick";
+						Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture = CardTextures[2];
+						Debug.Log("Player earned a card");
+						PlayerHandSize++;
+					}
+					PlayerScore ++;
+					UpdateScore ();
+					MoveTokenToCenter ();
+					GoalShotting = 0;
+					EndTurn ();
+				}
 			}
 			else
 			{
-				if (AIHandContains("Intercept"))
+				if (AIHandContains("FreeKick"))
+				{
+					StartCoroutine(DisplayCardMessage("FreeKick",3000));
+					AIDiscard("FreeKick");
+				}
+				else if (AIHandContains("Intercept"))
 				{
 					StartCoroutine(DisplayCardMessage("Intercept",3000));
 					AIDiscard("Intercept");
 				}
-				else
+				else if (AIDeckPos < DeckSize)
 				{
 					Debug.Log ("Dicard");
 					StartCoroutine (DisplayMessage ("AI Discards", 1000));
 					now = System.DateTime.Now; // change to float 
 					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 
-					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
-					AIDeckPos++;
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[Random.Range (0,5)] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[Random.Range (0,5)] = "";
+					}
 					if (AIHandContains("Intercept"))
 					{
 						StartCoroutine(DisplayCardMessage("Intercept",3000));
@@ -336,7 +446,13 @@ public class GameManager : MonoBehaviour {
 						EndTurn ();
 					}
 				}
+				else
+				{
+					Skipped++;
+					EndTurn ();
+				}
 			}
+
 			//PublicIntercept();
 		}
 		else if (!PlayerHasBall ){//&& AIHandContains("Pass")) {
@@ -347,15 +463,22 @@ public class GameManager : MonoBehaviour {
 					StartCoroutine(DisplayCardMessage("Pass",3000));
 					AIDiscard("Pass");
 				}
-				else
+				else if (AIDeckPos < DeckSize)
 				{
-					Debug.Log ("Dicard");
+					Debug.Log ("Discard");
 					StartCoroutine (DisplayMessage ("AI Discards", 1000));
 					now = System.DateTime.Now; // change to float 
 					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 
-					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
-					AIDeckPos++;
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[Random.Range (0,5)] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[Random.Range (0,5)] = "";
+					}
 					if (AIHandContains("Pass"))
 					{
 						StartCoroutine(DisplayCardMessage("Pass",3000));
@@ -365,6 +488,11 @@ public class GameManager : MonoBehaviour {
 					{
 						EndTurn ();
 					}
+				}
+				else
+				{
+					Skipped++;
+					EndTurn ();
 				}
 				//PublicPass ();
 			}
@@ -397,15 +525,22 @@ public class GameManager : MonoBehaviour {
 					//StartCoroutine(GoalShot ("Left"));
 				}
 
-				else
+				else if (AIDeckPos < DeckSize)
 				{
 					Debug.Log ("Dicard");
 					StartCoroutine (DisplayMessage ("AI Discards", 1000));
 					now = System.DateTime.Now; // change to float 
 					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
 
-					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
-					AIDeckPos++;
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[Random.Range (0,5)] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[Random.Range (0,5)] = "";
+					}
 
 					if (AIHandContains("GoalShotRight"))
 					{
@@ -427,6 +562,11 @@ public class GameManager : MonoBehaviour {
 						EndTurn ();
 					}
 				}
+				else
+				{
+					Skipped++;
+					EndTurn ();
+				}
 			}
 		}else{EndTurn();};
 		
@@ -443,14 +583,31 @@ public class GameManager : MonoBehaviour {
 	}
 
 	void AIDiscard(string cardNum){
+		Skipped = 0;
 		int i;
-		for (i = 0; i < 6; i++) 
+		for (i = 0; i < AIHandSize; i++) 
 		{
 			if (AIHand[i] == cardNum)
 			{
-				AIHand[i] = AIDeck[AIDeckPos];
-				AIDeckPos++;
-				break;
+				if (i < 6)
+				{
+					if (AIDeckPos < DeckSize)
+					{
+						AIHand[i] = AIDeck[AIDeckPos];
+						AIDeckPos++;
+					}
+					else
+					{
+						AIHand[i] = "";
+					}
+					break;
+				}
+				else
+				{
+					AIHand[i] = "";
+					AIHandSize--;
+					break;
+				}
 			}
 		}
 	}
@@ -467,16 +624,109 @@ public class GameManager : MonoBehaviour {
 	void EndTurn(){
 		Discarded = false;
 		DiscardButton.interactable = true;
-		//print ("End Turn");
-		playerTurn = !playerTurn;
-		//print ("Player turn: " + playerTurn);
-		if (playerTurn) {
-			StartCoroutine(DisplayMessage("Your turn!",4000));
-			//print("Your turn!");
-			StartCoroutine(CardPrompt());
-		}else if (!playerTurn) {
-			;
-			StartCoroutine(AITurn());
+
+		if (Skipped < 2) {
+			//print ("End Turn");
+			playerTurn = !playerTurn;
+			//print ("Player turn: " + playerTurn);
+			if (playerTurn) {
+				StartCoroutine (DisplayMessage ("Your turn!", 4000));
+				//print("Your turn!");
+				StartCoroutine (CardPrompt ());
+			} else if (!playerTurn) {
+				;
+				StartCoroutine (AITurn ());
+			}
+		} 
+		else 
+		{
+			StartCoroutine (EndRound());
+		}
+	}
+
+	IEnumerator EndRound()
+	{
+		System.DateTime d = System.DateTime.Now;
+		if (Round < 1) {
+			RoundEnding = 0;
+			StartCoroutine (DisplayMessage ("Round over", 4000));
+			MoveTokenToCenter ();
+			RoundEnding = 1;
+			d = System.DateTime.Now;
+			while (System.DateTime.Now < d.AddMilliseconds(4000)) {
+				yield return null;
+			}
+
+			while (RoundEnding == 1) {
+				yield return null;
+			}
+
+			if (Home == false) {
+				FlipToken ();
+			}
+
+			PlayerHasBall = true;
+			Discarded = false;
+			Passing = 0;
+			Intercepting = 0;
+			GoalShotting = 0;
+			GoalBlocking = 0;
+			DeckPos = 0;
+			PlayerHandSize = 6;
+			AIHandSize = 6;
+
+			FreeKickCardsLeft = 4;
+			Skipped = 0;
+			Round++;
+
+			Shuffle ();
+			AIShuffle ();
+			StartCoroutine (DisplayMessage ("Tap to Roll Off!", 3000));
+			RollButton.SetActive (true);
+			diceRollComplete = false;
+
+			stage = stages.RollOff;
+		} 
+		else 
+		{
+			StartCoroutine (DisplayMessage ("Game over", 2000));
+			d = System.DateTime.Now;
+			while (System.DateTime.Now < d.AddMilliseconds(2000)) {
+				yield return null;
+			}
+
+			if (PlayerScore > AIScore)
+			{
+				StartCoroutine (DisplayMessage ("You win!", 2000));
+				d = System.DateTime.Now;
+				while (System.DateTime.Now < d.AddMilliseconds(2000)) {
+					yield return null;
+				}
+			}
+			else if (PlayerScore < AIScore)
+			{
+				StartCoroutine (DisplayMessage ("AI wins", 2000));
+				d = System.DateTime.Now;
+				while (System.DateTime.Now < d.AddMilliseconds(2000)) {
+					yield return null;
+				}
+			}
+			else
+			{
+				StartCoroutine (DisplayMessage ("It's a draw", 2000));
+				d = System.DateTime.Now;
+				while (System.DateTime.Now < d.AddMilliseconds(2000)) {
+					yield return null;
+				}
+			}
+
+			StartCoroutine (DisplayMessage ("Restarting game ...", 2000));
+			d = System.DateTime.Now;
+			while (System.DateTime.Now < d.AddMilliseconds(2000)) {
+				yield return null;
+			}
+
+			Application.LoadLevel(Application.loadedLevel);
 		}
 	}
 	
@@ -536,6 +786,26 @@ public class GameManager : MonoBehaviour {
 						card = 6;
 						waiting = 1;
 					}
+					else if(hit.collider.gameObject.name == "Card7")
+					{
+						card = 7;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card8")
+					{
+						card = 8;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card9")
+					{
+						card = 9;
+						waiting = 1;
+					}
+					else if(hit.collider.gameObject.name == "Card10")
+					{
+						card = 10;
+						waiting = 1;
+					}
 				}
 			}
 			yield return null;
@@ -553,7 +823,7 @@ public class GameManager : MonoBehaviour {
 	
 	void CheckValidCard()
 	{
-		if (Discarded == true) 
+		if (Discarded == true || DeckPos >= DeckSize || CardChoice >= 6) 
 		{
 			DiscardButton.interactable = false;
 		}
@@ -572,6 +842,18 @@ public class GameManager : MonoBehaviour {
 		if (Hand [CardChoice] == "Intercept" )
 		{
 			if (Home == false && GoalShotting != 6)
+			{
+				PlayCardButton.interactable = true;
+			}
+			else
+			{
+				PlayCardButton.interactable = false;
+			}
+		}
+
+		if (Hand [CardChoice] == "FreeKick" )
+		{
+			if (GoalShotting != 6)
 			{
 				PlayCardButton.interactable = true;
 			}
@@ -611,10 +893,21 @@ public class GameManager : MonoBehaviour {
 		if (GoalShotting == 6) 
 		{
 			StartCoroutine (DisplayMessage ("AI Scores", 3000));
+			if (FreeKickCardsLeft > 0)
+			{
+				AIHand[AIHandSize] = "FreeKick";
+				AIHandSize++;
+				Debug.Log("AI earned a card");
+				FreeKickCardsLeft --;
+			}
 			AIScore ++;
 			UpdateScore ();
 			MoveTokenToCenter ();
 			GoalShotting = 0;
+		}
+		if (Discarded == false)
+		{
+			Skipped++;
 		}
 		DisplayCard.SetActive(false);
 		CardButtons.SetActive(false);
@@ -626,6 +919,7 @@ public class GameManager : MonoBehaviour {
 	
 	public void PlayCard()
 	{
+		Skipped = 0;
 		DisplayCard.SetActive(false);
 		CardButtons.SetActive(false);
 		HideCards();
@@ -655,6 +949,10 @@ public class GameManager : MonoBehaviour {
 		if (Hand [CardChoice] == "BlockLeft") {
 			StartCoroutine(GoalBlock());
 		}
+
+		if (Hand [CardChoice] == "FreeKick") {
+			StartCoroutine(FreeKick());
+		}
 		//StartCoroutine(EndTurn ());
 		DiscardCard ();
 	}
@@ -668,28 +966,84 @@ public class GameManager : MonoBehaviour {
 	
 	public void DiscardCard()
 	{
+		int i;
 		Discarded = true;
-		Hand[CardChoice] = Deck[DeckPos];
-		DeckPos++;
-		
-		if (Hand [CardChoice] == "Pass") {
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
+		Skipped = 0;
+
+		if (CardChoice < 6) {
+			if (DeckPos < DeckSize)
+			{
+				Debug.Log ("No" + DeckPos + DeckSize);
+				Hand [CardChoice] = Deck [DeckPos];
+				DeckPos++;
+			
+				if (Hand [CardChoice] == "Pass") {
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
+				} else if (Hand [CardChoice] == "GoalShotLeft") {
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [9];
+				} else if (Hand [CardChoice] == "GoalShotRight") {	
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [10];
+				} else if (Hand [CardChoice] == "Intercept") {	
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [12];
+				} else if (Hand [CardChoice] == "BlockLeft") {	
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [5];
+				} else {
+					Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [6];
+				}
+			}
+			else
+			{
+				Debug.Log ("Yes");
+				for (i = CardChoice; i < PlayerHandSize; i++)
+				{
+					Hand [i] = Hand [i + 1];
+
+					if (Hand [i] == "Pass") {
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
+					} else if (Hand [i] == "GoalShotLeft") {
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [9];
+					} else if (Hand [i] == "GoalShotRight") {	
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [10];
+					} else if (Hand [i] == "Intercept") {	
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [12];
+					} else if (Hand [i] == "FreeKick") {	
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [2];
+					} else if (Hand [i] == "BlockLeft") {	
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [5];
+					} else {
+						Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [6];
+					}
+				}
+				Hand[PlayerHandSize] = "";
+				PlayerHandSize--;
+				//ShowCards ();
+			}
+
 		} 
-		else if (Hand [CardChoice] == "GoalShotLeft") {
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [9];
-		} 
-		else if (Hand [CardChoice] == "GoalShotRight") {	
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [10];
-		}
-		else if (Hand [CardChoice] == "Intercept") {	
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [12];
-		}
-		else if (Hand [CardChoice] == "BlockLeft") {	
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [5];
-		}
-		else
+		else 
 		{
-			Cards [CardChoice].GetComponent<Renderer> ().material.mainTexture = CardTextures [6];
+			for (i = CardChoice + 1; i < PlayerHandSize; i++)
+			{
+				Hand [i] = Hand  [i + 1];
+
+				if (Hand [i] == "Pass") {
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [14];
+				} else if (Hand [i] == "GoalShotLeft") {
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [9];
+				} else if (Hand [i] == "GoalShotRight") {	
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [10];
+				} else if (Hand [i] == "Intercept") {	
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [12];
+				} else if (Hand [i] == "FreeKick") {	
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [2];
+				} else if (Hand [i] == "BlockLeft") {	
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [5];
+				} else {
+					Cards [i].GetComponent<Renderer> ().material.mainTexture = CardTextures [6];
+				}
+			}
+			Hand[PlayerHandSize] = "";
+			PlayerHandSize--;
 		}
 	}
 	
@@ -751,6 +1105,11 @@ public class GameManager : MonoBehaviour {
 				CurrentBlockRightNum--;
 				Cards[i+4].GetComponent<Renderer>().material.mainTexture  = CardTextures[6];
 			}
+		}
+
+		for (i = 6; i < 10; i++) 
+		{
+			Hand[i] = "";
 		}
 		
 		i = 0;
@@ -852,7 +1211,11 @@ public class GameManager : MonoBehaviour {
 				CurrentBlockRightNum--;
 			}
 		}
-		
+
+		for (i = 6; i < 10; i++) 
+		{
+			AIHand[i] = "";
+		}
 		i = 0;
 		
 		while (CurrentPassNum + CurrentInterceptNum + CurrentGoalShotRightNum + CurrentGoalShotLeftNum + CurrentBlockRightNum + CurrentBlockLeftNum > 0) 
@@ -992,6 +1355,14 @@ public class GameManager : MonoBehaviour {
 						PlayerScore ++;
 						UpdateScore();
 						StartCoroutine (DisplayMessage("You Score!", 3000));
+						if (FreeKickCardsLeft > 0)
+						{
+							Hand[PlayerHandSize] = "FreeKick";
+							Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture  = CardTextures[2];
+							PlayerHandSize++;
+							Debug.Log("Player earned a card");
+							FreeKickCardsLeft++;
+						}
 						MoveTokenToCenter();
 					}
 					else
@@ -1006,6 +1377,155 @@ public class GameManager : MonoBehaviour {
 						AIScore ++;
 						UpdateScore();
 						StartCoroutine (DisplayMessage("AI Scores", 3000));
+						if (FreeKickCardsLeft > 0)
+						{
+							AIHand[AIHandSize] = "FreeKick";
+							Debug.Log("AI earned a card");
+							AIHandSize++;
+							FreeKickCardsLeft--;
+						}
+						MoveTokenToCenter();
+					}
+					else
+					{
+						FlipToken();
+					}
+				}
+				
+			}
+		}
+		Passing = 0;
+		EndTurn();
+	}
+
+
+
+	protected IEnumerator FreeKick()
+	{
+		int distance = 1;
+		int NewPos = 0;
+		
+		if (playerTurn == true)
+		{
+			RollDiceFunc ();
+		}
+		else
+		{
+			AIRollDiceFunc ();
+		}
+		Passing = 1;
+		
+		while (Passing == 1) 
+		{
+			yield return null;
+		}
+		
+		if (Dice1Val > Dice2Val)
+			distance = Dice1Val;
+		else if (Dice1Val < Dice2Val)
+			distance = Dice2Val;
+		else if (Dice1Val == Dice2Val)
+			distance = Dice1Val + 1;
+		
+		if (playerTurn == true) 
+		{
+			NewPos = BallPos + distance;
+		}
+		else
+		{
+			NewPos = BallPos - distance;
+		}
+		
+		if (NewPos >= 11) 
+		{
+			NewPos = 11;
+		}
+		
+		if (NewPos <= -11) 
+		{
+			NewPos = -11;
+		}
+		BallPos = NewPos;
+		MoveTokenToPos (NewPos);
+		
+		Passing = 3;
+		
+		while (Passing == 3) 
+		{
+			yield return null;
+		}
+
+		if (PlayerHasBall == playerTurn)
+		{
+			if (Dice1Val == 1 || Dice2Val == 1) 
+			{
+				FlipToken ();
+			}
+		}
+		else
+		{
+			if (Dice1Val != 1 && Dice2Val != 1) 
+			{
+				FlipToken ();
+			}
+		}
+		
+		if (NewPos <= -11 || NewPos >= 11) {
+			if (Dice1Val != 1 && Dice2Val != 1) 
+			{
+				OpposedRollDiceFunc();
+				Passing = 5;
+				
+				while (Passing == 5) 
+				{
+					yield return null;
+				}
+				
+				while (Dice1Val == Dice2Val)
+				{
+					OpposedRollDiceFunc();
+					Passing = 5;
+					
+					while (Passing == 5) 
+					{
+						yield return null;
+					}
+				}
+				
+				if (Dice1Val > Dice2Val)
+				{
+					if (playerTurn == true)
+					{
+						PlayerScore ++;
+						UpdateScore();
+						StartCoroutine (DisplayMessage("You Score!", 3000));
+						if (FreeKickCardsLeft > 0)
+						{
+							Hand[PlayerHandSize] = "FreeKick";
+							Cards[PlayerHandSize].GetComponent<Renderer>().material.mainTexture  = CardTextures[2];
+							PlayerHandSize++;
+							Debug.Log("Player earned a card");
+						}
+						MoveTokenToCenter();
+					}
+					else
+					{
+						FlipToken();
+					}
+				}
+				else if (Dice1Val < Dice2Val)
+				{
+					if (playerTurn == false)
+					{
+						AIScore ++;
+						UpdateScore();
+						StartCoroutine (DisplayMessage("AI Scores", 3000));
+						if (FreeKickCardsLeft > 0)
+						{
+							AIHand[AIHandSize] = "FreeKick";
+							AIHandSize++;
+							Debug.Log("AI earned a card");
+						}
 						MoveTokenToCenter();
 					}
 					else
@@ -1077,47 +1597,77 @@ public class GameManager : MonoBehaviour {
 	public void ShowCards()
 	{
 		Vector3 CardPosistion;
+		int i;
+
+		for (i = 0; i < PlayerHandSize; i++) 
+		{
+			CardPosistion = new Vector3 (3.5f - (7f  / (PlayerHandSize - 1f) * i), 0.1f - 0.01f * i, 7f);
+			StartCoroutine (SmoothMovement (CardPosistion, Cards[i]));
+		}
+
+
+//		CardPosistion = new Vector3 (3.5f, 0.06f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[0]));
 		
-		CardPosistion = new Vector3 (3.5f, 0.06f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[0]));
+//		CardPosistion = new Vector3 (2.1f, 0.05f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[1]));
 		
-		CardPosistion = new Vector3 (2.1f, 0.05f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[1]));
+//		CardPosistion = new Vector3 (0.7f, 0.04f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[2]));
 		
-		CardPosistion = new Vector3 (0.7f, 0.04f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[2]));
+//		CardPosistion = new Vector3 (-0.7f, 0.03f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[3]));
 		
-		CardPosistion = new Vector3 (-0.7f, 0.03f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[3]));
+//		CardPosistion = new Vector3 (-2.1f, 0.02f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[4]));
 		
-		CardPosistion = new Vector3 (-2.1f, 0.02f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[4]));
-		
-		CardPosistion = new Vector3 (-3.5f, 0.01f, 7f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[5]));
+//		CardPosistion = new Vector3 (-3.5f, 0.01f, 7f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[5]));
 	}
 	
 	public void HideCards()
 	{
 		Vector3 CardPosistion;
-		
-		CardPosistion = new Vector3 (3.5f, 0.06f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[0]));
-		
-		CardPosistion = new Vector3 (2.1f, 0.05f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[1]));
-		
-		CardPosistion = new Vector3 (0.7f, 0.04f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[2]));
-		
-		CardPosistion = new Vector3 (-0.7f, 0.03f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[3]));
-		
-		CardPosistion = new Vector3 (-2.1f, 0.02f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[4]));
-		
-		CardPosistion = new Vector3 (-3.5f, 0.01f, 10f);
-		StartCoroutine (SmoothMovement (CardPosistion, Cards[5]));
+		int i;
+
+		for (i = 0; i < PlayerHandSize; i++) 
+		{
+			CardPosistion = new Vector3 (3.5f - (7f  / (PlayerHandSize - 1f) * i), 0.1f - 0.01f * i, 10f);
+			StartCoroutine (SmoothMovement (CardPosistion, Cards[i]));
+		}
+
+		for (i = PlayerHandSize; i < 10; i++) 
+		{
+			CardPosistion = new Vector3 (3.5f - (7f  / (7 - 1f) * i), 0.1f - 0.01f * i, 10f);
+			StartCoroutine (SmoothMovement (CardPosistion, Cards[i]));
+		}
+
+
+//		CardPosistion = new Vector3 (3.5f, 0.06f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[0]));
+//		
+//		CardPosistion = new Vector3 (2.1f, 0.05f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[1]));
+//		
+//		CardPosistion = new Vector3 (0.7f, 0.04f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[2]));
+//		
+//		CardPosistion = new Vector3 (-0.7f, 0.03f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[3]));
+//		
+//		CardPosistion = new Vector3 (-2.1f, 0.02f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[4]));
+//		
+//		CardPosistion = new Vector3 (-3.5f, 0.01f, 10f);
+//		StartCoroutine (SmoothMovement (CardPosistion, Cards[5]));
+	}
+
+	public void HideCard(int Card)
+	{
+		Vector3 CardPosistion;
+
+		CardPosistion = new Vector3 (3.5f - (7f / (PlayerHandSize - 1f) * Card), 0.1f - 0.01f * Card, 10f);
+		StartCoroutine (SmoothMovement (CardPosistion, Cards [Card]));
 	}
 	
 	public void MoveTokenToGoal()
@@ -1564,6 +2114,10 @@ public class GameManager : MonoBehaviour {
 		if (GoalBlocking == 3) 
 		{
 			GoalBlocking++;
+		}
+		if (RoundEnding == 1) 
+		{
+			RoundEnding++;
 		}
 	}
 	
