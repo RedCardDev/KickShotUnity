@@ -1,0 +1,52 @@
+Initialize engine version: 5.1.1f1 (2046fc06d4d8)
+GfxDevice: creating device client; threaded=1
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.0]
+    Renderer: NVIDIA GeForce GTX 970 (ID=0x13c2)
+    Vendor:   NVIDIA
+    VRAM:     3072 MB
+Begin MonoManager ReloadAssembly
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.dll (this message is harmless)
+Loading C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.dll into Unity Child Domain
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\Assembly-CSharp.dll (this message is harmless)
+Loading C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\Assembly-CSharp.dll into Unity Child Domain
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.UI.dll (this message is harmless)
+Loading C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.UI.dll into Unity Child Domain
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.Networking.dll (this message is harmless)
+Loading C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.Networking.dll into Unity Child Domain
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.Analytics.dll (this message is harmless)
+Loading C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\UnityEngine.Analytics.dll into Unity Child Domain
+- Completed reload, in  0.062 seconds
+desktop: 1600x900 60Hz; virtual: 1600x900 at 0,0
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\System.Core.dll (this message is harmless)
+Platform assembly: C:\Users\Jason\Documents\Unity Projects\Kickshot\TestBuild_Data\Managed\System.dll (this message is harmless)
+Setting up 2 worker threads for Enlighten.
+  Thread -> id: 1370 -> priority: 1 
+  Thread -> id: 149c -> priority: 1 
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.550329 ms
+
+Unloading 6 unused Assets to reduce memory usage. Loaded Objects now: 489.
+Total: 0.282177 ms (FindLiveObjects: 0.029418 ms CreateObjectMapping: 0.031219 ms MarkObjects: 0.214934 ms  DeleteObjects: 0.006303 ms)
+
+You go first
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+AI Turn
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+AI hand: Pass | Pass | GoalShotRight | GoalShotLeft | Intercept | BlockRight
+ 
+(Filename: C:/buildslave/unity/build/artifacts/generated/common/runtime/UnityEngineDebugBindings.gen.cpp Line: 65)
+
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 0.899664 ms
+
+Unloading 60 unused Assets to reduce memory usage. Loaded Objects now: 198.
+Total: 0.245554 ms (FindLiveObjects: 0.011707 ms CreateObjectMapping: 0.008105 ms MarkObjects: 0.131482 ms  DeleteObjects: 0.093959 ms)
+

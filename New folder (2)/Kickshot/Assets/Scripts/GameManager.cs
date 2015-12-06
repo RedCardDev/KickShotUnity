@@ -15,8 +15,10 @@ public class GameManager : MonoBehaviour {
 	
 	public GameObject DisplayCard;
 	public GameObject CardButtons;
+	public GameObject RollButton;
 	
 	public Button PlayCardButton;
+	public Button DiscardButton;
 	
 	string[] Hand;
 	string[] Deck;
@@ -60,6 +62,7 @@ public class GameManager : MonoBehaviour {
 	bool DiceShown;
 	bool PlayerHasBall;
 	bool playerTurn; // from merge
+	bool Discarded;
 	
 	int Dice1Val;
 	int Dice2Val;
@@ -68,12 +71,15 @@ public class GameManager : MonoBehaviour {
 	int Intercepting;
 	int GoalShotting;
 	int GoalBlocking;
+
 	string GoalShotSide;
 	
 	int CardChoice;
 	
 	int DeckPos;
+	int AIDeckPos;
 	public Text ScoreText;
+	public Text CardText;
 	
 	// from merge
 	public Text message;
@@ -89,13 +95,17 @@ public class GameManager : MonoBehaviour {
 		AIDeck = new string[1000];
 		Home = true;
 		PlayerHasBall = true;
+		Discarded = false;
 		Passing = 0;
 		Intercepting = 0;
 		GoalShotting = 0;
 		GoalBlocking = 0;
 		DeckPos = 0;
 		Shuffle();
+		AIShuffle();
+		CardText.text = "";
 		StartCoroutine (DisplayMessage ("Tap to Roll Off!", 3000));
+		RollButton.SetActive(true);
 		stage = stages.RollOff;
 	}
 	
@@ -111,6 +121,82 @@ public class GameManager : MonoBehaviour {
 		}
 		yield return null;
 	} // end DisplayMessage // from merge
+
+	IEnumerator DisplayCardMessage(string newMessage, int time){
+		message.text = "";
+		if (newMessage == "Pass") 
+		{
+			CardText.text = "AI plays pass";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [13];
+			DisplayCard.SetActive(true);
+		}
+
+		if (newMessage == "Intercept") {
+			CardText.text = "AI plays intercept";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [11];
+			DisplayCard.SetActive (true);
+		}
+
+		if (newMessage == "GoalShotLeft") {
+			CardText.text = "AI plays goal shot left";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [7];
+			DisplayCard.SetActive (true);
+		}
+
+		if (newMessage == "GoalShotRight") {
+			CardText.text = "AI plays goal shot right";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [8];
+			DisplayCard.SetActive (true);
+		}
+
+		if (newMessage == "BlockLeft") {
+			CardText.text = "AI plays goal block left";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [3];
+			DisplayCard.SetActive (true);
+		}
+
+		if (newMessage == "BlockRight") {
+			CardText.text = "AI plays goal block right";
+			DisplayCard.GetComponent<Renderer> ().material.mainTexture = CardTextures [4];
+			DisplayCard.SetActive (true);
+		}
+
+
+			//print ("yes");
+		System.DateTime now = System.DateTime.Now;
+		while(System.DateTime.Now < now.AddMilliseconds(time)){
+			//print ("wait");
+			yield return null;}
+
+
+		//Debug.Log ("Yes");
+		CardText.text = "";
+		DisplayCard.SetActive (false);
+
+		if (newMessage == "Intercept") {
+			PublicIntercept ();
+		}
+		if (newMessage == "Pass") {
+			PublicPass ();
+		}
+		if (newMessage == "GoalShotRight") 
+		{
+			StartCoroutine(GoalShot ("Right"));
+		}
+		if (newMessage == "GoalShotLeft") 
+		{
+			StartCoroutine(GoalShot ("Left"));
+		}
+		if (newMessage == "BlockRight") 
+		{
+			StartCoroutine(GoalBlock());
+		}
+		if (newMessage == "BlockLeft") 
+		{
+			StartCoroutine(GoalBlock());
+		}
+		yield return null;
+	} 
 	
 	// Update is called once per frame
 	void Update () {
@@ -129,6 +215,7 @@ public class GameManager : MonoBehaviour {
 		if (diceRollComplete && stage == stages.RollOff) { // if roll off stage
 			diceRollComplete = false;
 			stage = stages.CardSelect;
+			RollButton.SetActive(false);
 			if (Dice1Val > Dice2Val) {
 				StartCoroutine (DisplayMessage ("You go first", 2000));
 				print("You go first");
@@ -153,29 +240,192 @@ public class GameManager : MonoBehaviour {
 		
 		StartCoroutine(DisplayMessage("AI Turn",1000));
 		print ("AI Turn");
+		Debug.Log ("AI hand: " + AIHand[0] + " | " + AIHand[1] + " | " + AIHand[2] + " | " + AIHand[3] + " | " + AIHand[4] + " | " + AIHand[5] );
 		System.DateTime now = System.DateTime.Now; // change to float 
 		while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
-		if(PlayerHasBall ){//&& AIHandContains("Intercept")){
-			StartCoroutine(DisplayMessage("AI Plays Intercept",1000));
-			PublicIntercept();
+		if(PlayerHasBall )
+		{
+
+			if (GoalShotting == 6 && GoalShotSide == "Right")
+			{
+				if (AIHandContains("BlockRight"))
+				{
+					StartCoroutine(DisplayCardMessage("BlockRight",3000));
+					AIDiscard("BlockRight");
+				}
+				else
+				{
+					StartCoroutine (DisplayMessage ("AI Discards", 1000));
+					now = System.DateTime.Now; // change to float 
+					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+
+					Debug.Log ("Dicard");
+					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
+					AIDeckPos++;
+					if (AIHandContains("BlockRight"))
+					{
+						StartCoroutine(DisplayCardMessage("BlockRight",3000));
+						AIDiscard("BlockRight");
+					}
+					else
+					{
+						StartCoroutine (DisplayMessage ("Player Scores", 3000));
+						AIScore ++;
+						UpdateScore ();
+						MoveTokenToCenter ();
+						GoalShotting = 0;
+						EndTurn ();
+					}
+				}
+			}
+			else if (GoalShotting == 6 && GoalShotSide == "Left")
+			{
+				if (AIHandContains("BlockLeft"))
+				{
+					StartCoroutine(DisplayCardMessage("BlockLeft",3000));
+					AIDiscard("BlockLeft");
+				}
+				else
+				{
+					Debug.Log ("Dicard");
+					StartCoroutine (DisplayMessage ("AI Discards", 1000));
+					now = System.DateTime.Now; // change to float 
+					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+
+					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
+					AIDeckPos++;
+					if (AIHandContains("BlockLeft"))
+					{
+						StartCoroutine(DisplayCardMessage("BlockLeft",3000));
+						AIDiscard("BlockLeft");
+					}
+					else
+					{
+						StartCoroutine (DisplayMessage ("Player Scores", 3000));
+						AIScore ++;
+						UpdateScore ();
+						MoveTokenToCenter ();
+						GoalShotting = 0;
+						EndTurn ();
+					}
+				}
+			}
+			else
+			{
+				if (AIHandContains("Intercept"))
+				{
+					StartCoroutine(DisplayCardMessage("Intercept",3000));
+					AIDiscard("Intercept");
+				}
+				else
+				{
+					Debug.Log ("Dicard");
+					StartCoroutine (DisplayMessage ("AI Discards", 1000));
+					now = System.DateTime.Now; // change to float 
+					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+
+					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
+					AIDeckPos++;
+					if (AIHandContains("Intercept"))
+					{
+						StartCoroutine(DisplayCardMessage("Intercept",3000));
+						AIDiscard("Intercept");
+					}
+					else
+					{
+						EndTurn ();
+					}
+				}
+			}
+			//PublicIntercept();
 		}
 		else if (!PlayerHasBall ){//&& AIHandContains("Pass")) {
 			if (BallPos > -4)
 			{
-				StartCoroutine(DisplayMessage("AI Plays Pass",1000));
-				PublicPass ();
-			}
-			else
-			{
-				if (Random.Range(0,10) > 5)
+				if (AIHandContains("Pass"))
 				{
-					StartCoroutine(DisplayMessage("AI Plays Goal Shot Right",1000));
-					StartCoroutine(GoalShot ("Right"));
+					StartCoroutine(DisplayCardMessage("Pass",3000));
+					AIDiscard("Pass");
 				}
 				else
 				{
-					StartCoroutine(DisplayMessage("AI Plays Goal Shot Left",1000));
-					StartCoroutine(GoalShot ("Left"));
+					Debug.Log ("Dicard");
+					StartCoroutine (DisplayMessage ("AI Discards", 1000));
+					now = System.DateTime.Now; // change to float 
+					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+
+					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
+					AIDeckPos++;
+					if (AIHandContains("Pass"))
+					{
+						StartCoroutine(DisplayCardMessage("Pass",3000));
+						AIDiscard("Pass");
+					}
+					else
+					{
+						EndTurn ();
+					}
+				}
+				//PublicPass ();
+			}
+			else
+			{
+				if (AIHandContains("GoalShotRight") && AIHandContains("GoalShotLeft"))
+				{
+					if (Random.Range(0,10) > 5)
+					{
+						StartCoroutine(DisplayCardMessage("GoalShotRight",3000));
+						AIDiscard("GoalShotRight");
+					}
+					else
+					{
+						StartCoroutine(DisplayCardMessage("GoalShotLeft",3000));
+						AIDiscard("GoalShotLeft");
+					}
+				}
+				else if (AIHandContains("GoalShotRight"))
+				{
+					StartCoroutine(DisplayCardMessage("GoalShotRight",3000));
+					AIDiscard("GoalShotRight");
+
+					//(GoalShot ("Right"));
+				}
+				else if (AIHandContains("GoalShotLeft"))
+				{
+					StartCoroutine(DisplayCardMessage("GoalShotLeft",3000));
+					AIDiscard("GoalShotLeft");
+					//StartCoroutine(GoalShot ("Left"));
+				}
+
+				else
+				{
+					Debug.Log ("Dicard");
+					StartCoroutine (DisplayMessage ("AI Discards", 1000));
+					now = System.DateTime.Now; // change to float 
+					while(System.DateTime.Now < now.AddMilliseconds(1000)){yield return null;}
+
+					AIHand[Random.Range (0,6)] = AIDeck[AIDeckPos];
+					AIDeckPos++;
+
+					if (AIHandContains("GoalShotRight"))
+					{
+						StartCoroutine(DisplayCardMessage("GoalShotRight",3000));
+						AIDiscard("GoalShotRight");
+					}
+					else if (AIHandContains("GoalShotLeft"))
+					{
+						StartCoroutine(DisplayCardMessage("GoalShotLeft",3000));
+						AIDiscard("GoalShotLeft");
+					}
+					else if (AIHandContains("Pass"))
+					{
+						StartCoroutine(DisplayCardMessage("Pass",3000));
+						AIDiscard("Pass");
+					}
+					else
+					{
+						EndTurn ();
+					}
 				}
 			}
 		}else{EndTurn();};
@@ -191,6 +441,20 @@ public class GameManager : MonoBehaviour {
 		}
 		return false;
 	}
+
+	void AIDiscard(string cardNum){
+		int i;
+		for (i = 0; i < 6; i++) 
+		{
+			if (AIHand[i] == cardNum)
+			{
+				AIHand[i] = AIDeck[AIDeckPos];
+				AIDeckPos++;
+				break;
+			}
+		}
+	}
+
 	bool PlayerHandContains(string cardNum){
 		foreach (string card in Hand) {
 			if(card == cardNum){
@@ -201,12 +465,14 @@ public class GameManager : MonoBehaviour {
 	}
 	
 	void EndTurn(){
-		print ("End Turn");
+		Discarded = false;
+		DiscardButton.interactable = true;
+		//print ("End Turn");
 		playerTurn = !playerTurn;
-		print ("Player turn: " + playerTurn);
+		//print ("Player turn: " + playerTurn);
 		if (playerTurn) {
 			StartCoroutine(DisplayMessage("Your turn!",4000));
-			print("Your turn!");
+			//print("Your turn!");
 			StartCoroutine(CardPrompt());
 		}else if (!playerTurn) {
 			;
@@ -276,7 +542,8 @@ public class GameManager : MonoBehaviour {
 		}
 		
 		CardChoice = card - 1;
-		
+
+		message.text = "";
 		DisplayCard.GetComponent<Renderer> ().material.mainTexture = Cards [card - 1].GetComponent<Renderer> ().material.mainTexture;
 		DisplayCard.SetActive(true);
 		CardButtons.SetActive(true);
@@ -286,6 +553,10 @@ public class GameManager : MonoBehaviour {
 	
 	void CheckValidCard()
 	{
+		if (Discarded == true) 
+		{
+			DiscardButton.interactable = false;
+		}
 		if (Hand [CardChoice] == "Pass" || Hand [CardChoice] == "GoalShotLeft" || Hand [CardChoice] == "GoalShotRight") 
 		{
 			if (Home == true)
@@ -397,6 +668,7 @@ public class GameManager : MonoBehaviour {
 	
 	public void DiscardCard()
 	{
+		Discarded = true;
 		Hand[CardChoice] = Deck[DeckPos];
 		DeckPos++;
 		
@@ -965,6 +1237,7 @@ public class GameManager : MonoBehaviour {
 			Dice2.SetActive(true);
 			DisplayDice1.SetActive(false);
 			DisplayDice2.SetActive(false);
+			RollButton.SetActive(false);
 			
 			Vector3 SpawnPosistion = new Vector3 (0.4f, 7f, 5f);
 			Quaternion SpawnRotation = Quaternion.identity;
@@ -1194,44 +1467,12 @@ public class GameManager : MonoBehaviour {
 		if (NewPos > -11 && NewPos < 11) 
 		{
 			FlipToken ();
-		}else{
-			// check if opposed has a goalblock card 
-			if (PlayerHasBall == true 
-			    && ((side == "right" && AIHandContains("BlockRight")) 
-			    ||  (side == "left" && AIHandContains("BlockLeft")))){
-				// chance AI plays card
-				if (Random.Range(0,10) > 2) {
+		}
+		else
+		{
+			GoalShotting = 6;
+			GoalShotSide = side;
 
-				}
-			}
-//			else if (PlayerHasBall == false 
-//			          && ((side == "right" && PlayerHandContains("GoalBlockRight")) 
-//			    || (side == "left" && PlayerHandContains("GoalBlockLeft")))){
-				// does player want to play a goalblock?
-//			}
-			else{
-				// if not, goal 
-				if (PlayerHasBall == true)
-				{
-					StartCoroutine (DisplayMessage("You Score!", 3000));
-					PlayerScore ++;
-					UpdateScore();
-					MoveTokenToCenter();
-					GoalShotting = 0;
-				}
-				else
-				{
-					GoalShotting = 6;
-					GoalShotSide = side;
-				}
-//				else if (PlayerHasBall == false)
-//				{
-//					StartCoroutine (DisplayMessage("AI Scores", 3000));
-//					AIScore ++;
-//					UpdateScore();
-//					MoveTokenToCenter();
-//				}
-			}
 		}
 		//GoalShotting = 0;
 		EndTurn();
@@ -1291,10 +1532,11 @@ public class GameManager : MonoBehaviour {
 			yield return null;
 		}
 		
-		if (Dice1Val != 1 || Dice2Val != 1) 
+		if (Dice1Val != 1 && Dice2Val != 1) 
 		{
 			FlipToken ();
 		}
+
 		EndTurn();
 	}
 	
